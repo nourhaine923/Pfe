@@ -8,5 +8,5 @@ class TransfusionEvent(BaseModel):
     aboType: str
     indication: str
 
-    # Reference
+    # Reference to Patient
     patient_id: str

@@ -8,6 +8,13 @@ from app.routers.biological_routes import router as biological_router
 from app.routers.adverse_event_routes import router as adverse_event_router
 from app.routers.immunological_routes import router as immunological_router
 from app.routers.outcome_routes import router as outcome_router
+from app.routers.transfusion_routes import router as transfusion_router
+from app.routers.rejection_routes import router as rejection_router
+from app.routers.vital_routes import router as vital_router
+from app.routers.adherence_routes import router as adherence_router
+from app.routers.barem_routes import router as barem_router
+from app.routers.score_routes import router as score_router
+
 
 
 app = FastAPI()
@@ -19,6 +26,13 @@ app.include_router(biological_router)
 app.include_router(adverse_event_router)
 app.include_router(immunological_router)
 app.include_router(outcome_router)
+app.include_router(transfusion_router)
+app.include_router(rejection_router)
+app.include_router(vital_router)
+app.include_router(adherence_router)
+app.include_router(barem_router)
+app.include_router(score_router)
+
 
 @app.get("/")
 def root():

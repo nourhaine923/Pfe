@@ -2,7 +2,8 @@ from pydantic import BaseModel
 
 
 class Attribute(BaseModel):
-    label: str
+    label: str          # e.g. "diabetes"
+    value: str          # e.g. "True"
+    impact: int         # points applied
 
-    # Reference to barem document
-    barem_id: str
+    score_id: str       # reference to computed score

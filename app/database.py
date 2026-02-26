@@ -6,10 +6,10 @@ import os
 load_dotenv()
 
 MONGODB_URL = os.getenv("MONGODB_URL")
-DATABASE_NAME = os.getenv("DATABASE_NAME")
+DATABASE_NAME = os.getenv("pfe_transplantation")
 
 # Create MongoDB client (SYNC)
-client = MongoClient(MONGODB_URL)
+client = MongoClient("mongodb://localhost:27017")
 
 # Select database
-db = client[DATABASE_NAME]
+db = client["pfe_transplantation"]

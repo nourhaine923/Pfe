@@ -13,5 +13,5 @@ class VitalSigns(BaseModel):
     bloodPressure: float
     graftUltraSound: Optional[str] = None
 
-    # Reference
+    # Reference to FollowUp
     followup_id: str
