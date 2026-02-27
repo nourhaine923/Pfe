@@ -87,6 +87,24 @@ initial_rules = [
   { "score": "SCORE_1", "key": "transfusion_history", "value": "None", "impact": 4 },
   { "score": "SCORE_1", "key": "transfusion_history", "value": "Yes", "impact": -3 },
 
+  { "score": "SCORE_1", "key": "donor_type", "value": "Living", "impact": 10 },
+  { "score": "SCORE_1", "key": "donor_type", "value": "Deceased", "impact": 4 },
+  { "score": "SCORE_1", "key": "donor_type", "value": "ECD", "impact": -4 },
+
+  { "score": "SCORE_1", "key": "eer_modality", "value": "HD", "impact": 3 },
+  { "score": "SCORE_1", "key": "eer_modality", "value": "PD", "impact": 2 },
+  { "score": "SCORE_1", "key": "eer_modality", "value": "Preemptive", "impact": 6 },
+
+  { "score": "SCORE_1", "key": "nephropathy", "value": "Diabetes", "impact": -6 },
+  { "score": "SCORE_1", "key": "nephropathy", "value": "Glomerular", "impact": 4 },
+  { "score": "SCORE_1", "key": "nephropathy", "value": "Vascular", "impact": -2 },
+  { "score": "SCORE_1", "key": "nephropathy", "value": "Hereditary", "impact": 3 },
+  { "score": "SCORE_1", "key": "nephropathy", "value": "NTIC", "impact": 2 },
+  { "score": "SCORE_1", "key": "nephropathy", "value": "NI", "impact": 1 },
+
+
+
+
     # ===== SCORE 2 =====
 {"score":"SCORE_2","key":"creatinine","value":"<1.2","impact":15},
 {"score":"SCORE_2","key":"creatinine","value":"1.2-1.9","impact":8},

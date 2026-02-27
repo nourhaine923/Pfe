@@ -18,18 +18,10 @@ transplantation_collection = db["transplantations"]
 
 @router.post("/calculate-score-1/{transplantation_id}")
 def calculate_score_1(transplantation_id: str):
-    """
-    Calculate SCORE_1 using:
-    - Clinical data already stored in MongoDB
-    - Barem rules (editable by doctors)
 
-    This endpoint DOES NOT create an attributes collection.
-    Attributes are computed dynamically as required by the UML.
-    """
 
-    # -----------------------------
-    # 1️⃣ Validate transplantation exists
-    # -----------------------------
+   
+    # Validate transplantation exists
     transplantation = transplantation_collection.find_one(
         {"_id": ObjectId(transplantation_id)}
     )
@@ -37,17 +29,15 @@ def calculate_score_1(transplantation_id: str):
     if not transplantation:
         raise HTTPException(status_code=404, detail="Transplantation not found")
 
-    # -----------------------------
-    # 2️⃣ Extract ALL attributes dynamically
-    # -----------------------------
+
+    #  Extract ALL attributes dynamically
     try:
         attributes = extract_score1_attributes(transplantation_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # -----------------------------
-    # 3️⃣ Apply Barem rules
-    # -----------------------------
+
+    # Apply Barem rules
     total_score = 0
     matched_rules = []
 
@@ -68,9 +58,7 @@ def calculate_score_1(transplantation_id: str):
                 "impact": rule["impact"]
             })
 
-    # -----------------------------
-    # 4️⃣ Store computed score
-    # -----------------------------
+    # Store computed score
     score_document = {
         "scoreType": "SCORE_1",
         "value": total_score,
@@ -80,9 +68,7 @@ def calculate_score_1(transplantation_id: str):
 
     score_collection.insert_one(score_document)
 
-    # -----------------------------
-    # 5️⃣ Return result (without storing attributes)
-    # -----------------------------
+    # Return result 
     return {
         "score": total_score,
         "used_attributes": matched_rules

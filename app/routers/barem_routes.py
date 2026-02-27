@@ -16,7 +16,7 @@ def create_barem(barem: Barem):
 
     # Prevent duplicate rule
     existing = barem_collection.find_one({
-        "label": data["label"],
+        "value": data["value"],
         "key": data["key"]
     })
 
@@ -33,10 +33,10 @@ def create_barem(barem: Barem):
         "id": str(result.inserted_id)
     }
 
-# Get Barem configurations by label
-@router.get("/by-label/{label}", response_model=list[dict])
-def get_rules_for_label(label: str):
-    rules = list(barem_collection.find({"label": label}))
+# Get Barem configurations by key
+@router.get("/by-key/{key}", response_model=list[dict])
+def get_rules_for_key(key: str):
+    rules = list(barem_collection.find({"key": key}))
 
     for r in rules:
         r["_id"] = str(r["_id"])

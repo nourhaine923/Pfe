@@ -1,0 +1,36 @@
+{
+    "key":"donor-age",
+    "values":[
+        {
+            "type":"conditional",
+            "conditions":[
+                {
+                    "operator":"between",
+                    "value":[18,35],
+                    "impact":"+8"
+                },
+                {
+                    "operator":"between",
+                    "value":[36,50],
+                    "impact":"+5"
+                },
+                {
+                    "operator":"between",
+                    "value":[51,65],
+                    "impact":"0"
+                },
+                {
+                    "operator":"greater_than",
+                    "value":65,
+                    "impact":"-5"
+                },
+                {
+                    "operator":"less_than",
+                    "value":18,
+                    "impact":"-5"
+                }
+            ]
+        },
+        
+    ]
+}
