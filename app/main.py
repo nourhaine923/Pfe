@@ -14,13 +14,14 @@ from app.routers.vital_routes import router as vital_router
 from app.routers.adherence_routes import router as adherence_router
 from app.routers.barem_routes import router as barem_router
 from app.routers.score_routes import router as score_router
-
-
+from app.routers.attribute_routes import router as attribute_router
+from app.routers.immunosuppression_routes import router as immunosuppression_router
 
 app = FastAPI()
 app.include_router(patient_router)
 app.include_router(transplantation_router)
 app.include_router(followup_router)
+app.include_router(immunosuppression_router)
 app.include_router(therapeutic_router)
 app.include_router(biological_router)
 app.include_router(adverse_event_router)
@@ -32,6 +33,8 @@ app.include_router(vital_router)
 app.include_router(adherence_router)
 app.include_router(barem_router)
 app.include_router(score_router)
+app.include_router(attribute_router)
+
 
 
 @app.get("/")

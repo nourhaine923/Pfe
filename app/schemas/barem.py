@@ -1,8 +1,19 @@
 from pydantic import BaseModel
+from typing import List, Union, Optional
+
+
+class Condition(BaseModel):
+    operator: Optional[str] = None   # used for conditional
+    value: Union[int, float, str, bool, List[Union[int, float]]]
+    impact: int
+
+
+class ValueRule(BaseModel):
+    type: str  # "conditional" | "boolean" | "categorical"
+    conditions: List[Condition]
 
 
 class Barem(BaseModel):
-    score: str      # SCORE_1, SCORE_2, SCORE_3
-    key: str      # attribute name (hla_matching, diabetes, etc.)
-    value: str        # category value (True, 0/6, >38°C, etc.)
-    impact: int     # points assigned
+    score: str
+    key: str
+    values: List[ValueRule]

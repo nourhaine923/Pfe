@@ -1,76 +1,97 @@
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Query
 from bson import ObjectId
-from typing import List
+from typing import List, Optional
 
 from app.database import db
 from app.schemas.barem import Barem
 
-router = APIRouter(prefix="/barems", tags=["Barem Configuration"])
+
+router = APIRouter(prefix="/barems", tags=["Barems"])
 
 barem_collection = db["barems"]
 
-# Create or update Barem configuration
-@router.post("/")
-def create_barem(barem: Barem):
-    data = barem.dict()
 
-    # Prevent duplicate rule
+# Helper: Convert Mongo _id to string
+def serialize_barem(doc):
+    doc["_id"] = str(doc["_id"])
+    return doc
+
+
+# CREATE a new Barem rule
+@router.post("/", response_model=dict)
+def create_barem(barem: Barem):
+
+    # Prevent duplicate key for same score
     existing = barem_collection.find_one({
-        "value": data["value"],
-        "key": data["key"]
+        "score": barem.score,
+        "key": barem.key
     })
 
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="This scoring rule already exists for this attribute value"
+            detail=f"Barem already exists for key '{barem.key}' in score '{barem.score}'"
         )
 
-    result = barem_collection.insert_one(data)
+    result = barem_collection.insert_one(barem.model_dump())
 
     return {
-        "message": "Scoring rule added",
+        "message": "Barem created successfully",
         "id": str(result.inserted_id)
     }
 
-# Get Barem configurations by key
-@router.get("/by-key/{key}", response_model=list[dict])
-def get_rules_for_key(key: str):
-    rules = list(barem_collection.find({"key": key}))
 
-    for r in rules:
-        r["_id"] = str(r["_id"])
-
-    return rules
-
-# Get all Barem configurations
+# GET all Barems (optionally filter by score)
 @router.get("/", response_model=List[dict])
-def get_barems():
-    barems = list(barem_collection.find())
+def get_barems(score: Optional[str] = Query(None)):
+    """
+    Retrieve all barems, or filter by score name.
+    """
 
-    for b in barems:
-        b["_id"] = str(b["_id"])
+    query = {"score": score} if score else {}
 
-    return barems
+    docs = list(barem_collection.find(query))
 
-# Update a Barem configuration
-@router.patch("/{barem_id}")
-def update_barem(barem_id: str, updates: dict = Body(...)):
-    obj_id = ObjectId(barem_id)
+    return [serialize_barem(doc) for doc in docs]
 
-    result = barem_collection.update_one({"_id": obj_id}, {"$set": updates})
+
+# GET a single Barem by ID
+@router.get("/{barem_id}", response_model=dict)
+def get_barem(barem_id: str):
+    doc = barem_collection.find_one({"_id": ObjectId(barem_id)})
+
+    if not doc:
+        raise HTTPException(status_code=404, detail="Barem not found")
+
+    return serialize_barem(doc)
+
+
+# UPDATE a Barem (doctor edits rules)
+@router.put("/{barem_id}", response_model=dict)
+def update_barem(barem_id: str, barem: Barem):
+    """
+    Replace an existing rule definition.
+    Used when doctor edits scoring logic.
+    """
+
+    result = barem_collection.update_one(
+        {"_id": ObjectId(barem_id)},
+        {"$set": barem.model_dump()}
+    )
 
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Barem not found")
 
-    return {"message": "Barem updated"}
+    return {"message": "Barem updated successfully"}
 
-# Delete a Barem configuration
-@router.delete("/{barem_id}")
+
+# DELETE a Barem
+@router.delete("/{barem_id}", response_model=dict)
 def delete_barem(barem_id: str):
+
     result = barem_collection.delete_one({"_id": ObjectId(barem_id)})
 
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Barem not found")
 
-    return {"message": "Barem deleted"}
+    return {"message": "Barem deleted successfully"}
