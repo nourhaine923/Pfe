@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.followup import FollowUp
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/followups", tags=["FollowUps"])
 
@@ -27,7 +29,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new follow-up
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_followup(followup: FollowUp):
     data = convert_dates(followup.dict())
 
@@ -50,7 +52,7 @@ def create_followup(followup: FollowUp):
     }
 
 # Get all follow-ups
-@router.get("/", response_model=List[dict])
+@router.get("/", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_followups():
     followups = list(followup_collection.find())
 
@@ -60,7 +62,7 @@ def get_followups():
 
     return followups
 # Get a follow-up by transplantation ID
-@router.get("/by-transplantation/{transplantation_id}")
+@router.get("/by-transplantation/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def get_followups_by_transplantation(transplantation_id: str):
     try:
         obj_id = ObjectId(transplantation_id)
@@ -76,7 +78,7 @@ def get_followups_by_transplantation(transplantation_id: str):
     return followups
 
 # Update a follow-up by ID
-@router.patch("/{followup_id}")
+@router.patch("/{followup_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_followup(followup_id: str, updates: dict = Body(...)):
     obj_id = ObjectId(followup_id)
 
@@ -94,7 +96,7 @@ def partial_update_followup(followup_id: str, updates: dict = Body(...)):
 
 
 
-@router.delete("/{followup_id}")
+@router.delete("/{followup_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_followup(followup_id: str):
     result = followup_collection.delete_one({"_id": ObjectId(followup_id)})
 

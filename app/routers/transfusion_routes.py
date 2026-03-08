@@ -5,6 +5,8 @@ from typing import List
 
 from app.database import db
 from app.schemas.transfusion_event import TransfusionEvent
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/transfusions", tags=["Transfusion Events"])
 
@@ -20,7 +22,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new transfusion event
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_transfusion(event: TransfusionEvent):
     data = convert_dates(event.dict())
 
@@ -51,7 +53,7 @@ def create_transfusion(event: TransfusionEvent):
     }
 
 # Get all transfusion events for a patient
-@router.get("/by-patient/{patient_id}", response_model=List[dict])
+@router.get("/by-patient/{patient_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_transfusions(patient_id: str):
     obj_id = ObjectId(patient_id)
 
@@ -64,7 +66,7 @@ def get_transfusions(patient_id: str):
     return events
 
 # Update transfusion event by id
-@router.patch("/{event_id}")
+@router.patch("/{event_id}", dependencies=[Depends(doctor_or_admin)])
 def update_transfusion(event_id: str, updates: dict = Body(...)):
     obj_id = ObjectId(event_id)
 
@@ -81,7 +83,7 @@ def update_transfusion(event_id: str, updates: dict = Body(...)):
     return {"message": "Transfusion updated"}
 
 #delete transfusion event by id
-@router.delete("/{event_id}")
+@router.delete("/{event_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_transfusion(event_id: str):
     result = transfusion_collection.delete_one({"_id": ObjectId(event_id)})
 

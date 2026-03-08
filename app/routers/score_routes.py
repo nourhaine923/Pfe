@@ -7,6 +7,8 @@ from app.utils.attribute_registry import ATTRIBUTE_REGISTRY
 from app.utils.rule_engine import compute_attribute_score
 from app.utils.context_score2 import build_score2_context
 from app.utils.context_score3 import build_score3_context
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 
 router = APIRouter(prefix="/scores", tags=["Scores"])
@@ -20,7 +22,7 @@ score_collection = db["scores"]
 # --------------------------------------------------
 # Calculate and STORE SCORE_1
 # --------------------------------------------------
-@router.post("/calculate-score-1/{transplantation_id}")
+@router.post("/calculate-score-1/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def calculate_score_1(transplantation_id: str):
 
     # 1️⃣ Load transplantation
@@ -102,7 +104,7 @@ def calculate_score_1(transplantation_id: str):
     }
 
 # Get Score History for a Transplantation
-@router.get("/history/{transplantation_id}")
+@router.get("/history/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def get_score_history(transplantation_id: str):
 
     scores = list(score_collection.find({
@@ -121,7 +123,7 @@ def get_score_history(transplantation_id: str):
     return scores
 
 # Get Latest Score for a Transplantation
-@router.get("/latest/{transplantation_id}")
+@router.get("/latest/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def get_latest_score(transplantation_id: str):
 
     latest = score_collection.find_one(
@@ -144,7 +146,7 @@ def get_latest_score(transplantation_id: str):
 # --------------------------------------------------
 # CALCULATE SCORE 2 (Per FollowUp)
 # --------------------------------------------------
-@router.post("/calculate-score-2/{followup_id}")
+@router.post("/calculate-score-2/{followup_id}", dependencies=[Depends(doctor_or_admin)])
 def calculate_score_2(followup_id: str):
 
     try:
@@ -207,7 +209,7 @@ def calculate_score_2(followup_id: str):
 #-----------------------------------------------
 #score 3
 #-----------------------------------------------
-@router.post("/calculate-score-3/{transplantation_id}")
+@router.post("/calculate-score-3/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def calculate_score_3(transplantation_id: str):
 
     context = build_score3_context(transplantation_id)

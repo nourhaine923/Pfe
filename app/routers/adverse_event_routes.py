@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.adverse_event import AdverseEvent
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/adverse-events", tags=["Adverse Events"])
 
@@ -22,7 +24,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new adverse event
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_adverse_event(event: AdverseEvent):
     data = convert_dates(event.dict())
 
@@ -45,7 +47,7 @@ def create_adverse_event(event: AdverseEvent):
     }
 
 # Get adverse events by follow-up ID
-@router.get("/by-followup/{followup_id}", response_model=List[dict])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_events_by_followup(followup_id: str):
     try:
         obj_id = ObjectId(followup_id)
@@ -60,7 +62,7 @@ def get_events_by_followup(followup_id: str):
 
     return events
 # Update an adverse event by ID
-@router.patch("/{event_id}")
+@router.patch("/{event_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_event(event_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(event_id)
@@ -80,7 +82,7 @@ def partial_update_event(event_id: str, updates: dict = Body(...)):
     return {"message": "Adverse event updated partially"}
 
 # Delete an adverse event by ID
-@router.delete("/{event_id}")
+@router.delete("/{event_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_event(event_id: str):
     result = adverse_collection.delete_one({"_id": ObjectId(event_id)})
 

@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.biological_measurement import BiologicalMeasurement
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/biological", tags=["Biological Measurements"])
 
@@ -21,7 +23,7 @@ def convert_dates(obj):
         return datetime(obj.year, obj.month, obj.day)
     return obj
 # Create a new biological measurement
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_measurement(measurement: BiologicalMeasurement):
     data = convert_dates(measurement.dict())
 
@@ -40,7 +42,7 @@ def create_measurement(measurement: BiologicalMeasurement):
     return {"id": str(result.inserted_id)}
 
 # Get measurements by follow-up ID
-@router.get("/by-followup/{followup_id}", response_model=List[dict])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_measurements(followup_id: str):
     obj_id = ObjectId(followup_id)
 
@@ -53,7 +55,7 @@ def get_measurements(followup_id: str):
     return measurements
 
 # Update a measurement by ID
-@router.patch("/{measurement_id}")
+@router.patch("/{measurement_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_measurement(measurement_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(measurement_id)
@@ -73,7 +75,7 @@ def partial_update_measurement(measurement_id: str, updates: dict = Body(...)):
     return {"message": "Measurement updated partially"}
 
 #Delete a measurement by ID
-@router.delete("/{measurement_id}")
+@router.delete("/{measurement_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_measurement(measurement_id: str):
     result = bio_collection.delete_one({"_id": ObjectId(measurement_id)})
 

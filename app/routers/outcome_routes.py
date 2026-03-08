@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.outcome import Outcome
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/outcomes", tags=["Outcomes"])
 
@@ -22,7 +24,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new outcome
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_outcome(outcome: Outcome):
     data = convert_dates(outcome.dict())
 
@@ -45,7 +47,7 @@ def create_outcome(outcome: Outcome):
     }
 
 # Get outcomes by transplantation ID
-@router.get("/by-transplantation/{transplantation_id}")
+@router.get("/by-transplantation/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def get_outcome(transplantation_id: str):
     try:
         obj_id = ObjectId(transplantation_id)
@@ -63,7 +65,7 @@ def get_outcome(transplantation_id: str):
     return outcome
 
 # Update an outcome by ID
-@router.patch("/{outcome_id}")
+@router.patch("/{outcome_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_outcome(outcome_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(outcome_id)
@@ -90,7 +92,7 @@ def partial_update_outcome(outcome_id: str, updates: dict = Body(...)):
     return {"message": "Outcome updated partially"}
 
 # Delete an outcome by ID
-@router.delete("/{outcome_id}")
+@router.delete("/{outcome_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_outcome(outcome_id: str):
     try:
         obj_id = ObjectId(outcome_id)

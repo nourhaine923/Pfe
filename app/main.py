@@ -16,6 +16,7 @@ from app.routers.barem_routes import router as barem_router
 from app.routers.score_routes import router as score_router
 from app.routers.attribute_routes import router as attribute_router
 from app.routers.immunosuppression_routes import router as immunosuppression_router
+from app.auth.auth_routes import router as auth_router
 
 app = FastAPI()
 app.include_router(patient_router)
@@ -34,6 +35,7 @@ app.include_router(adherence_router)
 app.include_router(barem_router)
 app.include_router(score_router)
 app.include_router(attribute_router)
+app.include_router(auth_router)
 
 
 

@@ -5,6 +5,8 @@ from typing import List
 
 from app.database import db
 from app.schemas.adherence_assessment import AdherenceAssessment
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/adherence", tags=["Adherence Assessments"])
 
@@ -19,7 +21,7 @@ def convert_dates(obj):
         return datetime(obj.year, obj.month, obj.day)
     return obj
 # Create a new adherence assessment
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_adherence(assessment: AdherenceAssessment):
     data = convert_dates(assessment.dict())
 
@@ -41,7 +43,7 @@ def create_adherence(assessment: AdherenceAssessment):
     }
 
 # Get all adherence assessments for a follow-up
-@router.get("/by-followup/{followup_id}", response_model=List[dict])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_adherence(followup_id: str):
     obj_id = ObjectId(followup_id)
 
@@ -54,7 +56,7 @@ def get_adherence(followup_id: str):
     return assessments
 
 # Update an adherence assessment
-@router.patch("/{assessment_id}")
+@router.patch("/{assessment_id}", dependencies=[Depends(doctor_or_admin)])
 def update_adherence(assessment_id: str, updates: dict = Body(...)):
     obj_id = ObjectId(assessment_id)
 
@@ -71,7 +73,7 @@ def update_adherence(assessment_id: str, updates: dict = Body(...)):
     return {"message": "Adherence updated"}
 
 # Delete an adherence assessment
-@router.delete("/{assessment_id}")
+@router.delete("/{assessment_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_adherence(assessment_id: str):
     result = adherence_collection.delete_one({"_id": ObjectId(assessment_id)})
 

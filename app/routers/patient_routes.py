@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.patient import Patient
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/patients", tags=["Patients"])
 
@@ -24,7 +26,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new patient
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_patient(patient: Patient):
     patient_dict = patient.dict()  # If using Pydantic v1
     # For Pydantic v2, use: patient_dict = patient.model_dump()
@@ -40,7 +42,7 @@ def create_patient(patient: Patient):
     }
 
 # Get all patients
-@router.get("/", response_model=List[dict])
+@router.get("/", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_patients():
     patients = list(patients_collection.find())
 
@@ -53,7 +55,7 @@ def get_patients():
     return patients
 
 # Get a patient by ID
-@router.get("/{patient_id}")
+@router.get("/{patient_id}", dependencies=[Depends(doctor_or_admin)])
 def get_patient(patient_id: str):
     patient = patients_collection.find_one({"_id": ObjectId(patient_id)})
 
@@ -67,7 +69,7 @@ def get_patient(patient_id: str):
     return patient
 
 # Delete a patient by ID (just for testing)
-@router.delete("/{patient_id}")
+@router.delete("/{patient_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_patient(patient_id: str):
     result = patients_collection.delete_one({"_id": ObjectId(patient_id)})
 
@@ -77,7 +79,7 @@ def delete_patient(patient_id: str):
     return {"message": "Patient deleted"}
 
 # Update a patient by ID
-@router.patch("/{patient_id}")
+@router.patch("/{patient_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_patient(patient_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(patient_id)

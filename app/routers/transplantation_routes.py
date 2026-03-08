@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.transplantation import Transplantation
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/transplantations", tags=["Transplantations"])
 
@@ -35,7 +37,7 @@ def convert_dates(obj):
 
 
 # Create a new transplantation
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_transplantation(transplantation: Transplantation):
     data = convert_dates(transplantation.dict())
 
@@ -61,7 +63,7 @@ def create_transplantation(transplantation: Transplantation):
         "id": str(result.inserted_id)
     }
 # Get all transplantations
-@router.get("/", response_model=List[dict])
+@router.get("/", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_transplantations():
     transplants = list(transplantation_collection.find())
 
@@ -72,7 +74,7 @@ def get_transplantations():
 
     return transplants
 # Get a transplantation by ID
-@router.get("/{transplantation_id}")
+@router.get("/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def get_transplantation(transplantation_id: str):
     transplant = transplantation_collection.find_one(
         {"_id": ObjectId(transplantation_id)}
@@ -88,7 +90,7 @@ def get_transplantation(transplantation_id: str):
     return transplant
 
 # Update a transplantation by ID
-@router.patch("/{transplantation_id}")
+@router.patch("/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_transplantation(transplantation_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(transplantation_id)
@@ -116,7 +118,7 @@ def partial_update_transplantation(transplantation_id: str, updates: dict = Body
 
 # Delete a transplantation by ID
 
-@router.delete("/{transplantation_id}")
+@router.delete("/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_transplantation(transplantation_id: str):
     obj_id = ObjectId(transplantation_id)
 

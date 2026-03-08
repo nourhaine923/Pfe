@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 from bson import ObjectId
 from datetime import datetime
 from app.database import db
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/immunosuppressions", tags=["Immunosuppression"])
 
@@ -19,7 +21,7 @@ def serialize(doc):
 # ---------------------------------------
 # CREATE Immunosuppression Regimen
 # ---------------------------------------
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_regimen(data: dict):
 
     result = collection.insert_one(data)
@@ -32,7 +34,7 @@ def create_regimen(data: dict):
 # ---------------------------------------
 # GET All Regimens
 # ---------------------------------------
-@router.get("/")
+@router.get("/", dependencies=[Depends(doctor_or_admin)])
 def get_all_regimens():
 
     docs = list(collection.find())
@@ -43,7 +45,7 @@ def get_all_regimens():
 # ---------------------------------------
 # GET One Regimen
 # ---------------------------------------
-@router.get("/{regimen_id}")
+@router.get("/{regimen_id}", dependencies=[Depends(doctor_or_admin)])
 def get_regimen(regimen_id: str):
 
     doc = collection.find_one({"_id": ObjectId(regimen_id)})
@@ -57,7 +59,7 @@ def get_regimen(regimen_id: str):
 # ---------------------------------------
 # UPDATE Regimen (Partial Update)
 # ---------------------------------------
-@router.patch("/{regimen_id}")
+@router.patch("/{regimen_id}", dependencies=[Depends(doctor_or_admin)])
 def update_regimen(regimen_id: str, updates: dict):
 
     result = collection.update_one(
@@ -76,7 +78,7 @@ def update_regimen(regimen_id: str, updates: dict):
 # ---------------------------------------
 # DELETE Regimen
 # ---------------------------------------
-@router.delete("/{regimen_id}")
+@router.delete("/{regimen_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_regimen(regimen_id: str):
 
     result = collection.delete_one({"_id": ObjectId(regimen_id)})

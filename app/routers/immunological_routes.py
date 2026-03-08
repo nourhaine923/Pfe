@@ -6,6 +6,8 @@ from fastapi import Body
 
 from app.database import db
 from app.schemas.immunological_marker import ImmunologicalMarker
+from app.auth.dependencies import doctor_or_admin
+from fastapi import Depends
 
 router = APIRouter(prefix="/immunological", tags=["Immunological Markers"])
 
@@ -22,7 +24,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new immunological marker
-@router.post("/")
+@router.post("/", dependencies=[Depends(doctor_or_admin)])
 def create_marker(marker: ImmunologicalMarker):
     data = convert_dates(marker.dict())
 
@@ -43,7 +45,7 @@ def create_marker(marker: ImmunologicalMarker):
         "id": str(result.inserted_id)
     }
 # Get immunological markers by follow-up ID
-@router.get("/by-followup/{followup_id}", response_model=List[dict])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
 def get_markers(followup_id: str):
     try:
         obj_id = ObjectId(followup_id)
@@ -59,7 +61,7 @@ def get_markers(followup_id: str):
     return markers
 
 # Update a marker by ID
-@router.patch("/{marker_id}")
+@router.patch("/{marker_id}", dependencies=[Depends(doctor_or_admin)])
 def partial_update_marker(marker_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(marker_id)
@@ -79,7 +81,7 @@ def partial_update_marker(marker_id: str, updates: dict = Body(...)):
     return {"message": "Marker updated partially"}
 
 # Delete a marker by ID
-@router.delete("/{marker_id}")
+@router.delete("/{marker_id}", dependencies=[Depends(doctor_or_admin)])
 def delete_marker(marker_id: str):
     result = marker_collection.delete_one({"_id": ObjectId(marker_id)})
 
