@@ -5,7 +5,7 @@ from typing import List
 
 from app.database import db
 from app.schemas.rejection_episode import RejectionEpisode
-from app.auth.dependencies import doctor_or_admin
+from app.auth.dependencies import nephrologist_or_admin
 from fastapi import Depends
 
 router = APIRouter(prefix="/rejections", tags=["Rejection Episodes"])
@@ -21,7 +21,7 @@ def convert_dates(obj):
         return datetime(obj.year, obj.month, obj.day)
     return obj
 # Create a new rejection episode
-@router.post("/", dependencies=[Depends(doctor_or_admin)])
+@router.post("/", dependencies=[Depends(nephrologist_or_admin)])
 def create_rejection(rejection: RejectionEpisode):
     data = convert_dates(rejection.dict())
 
@@ -45,7 +45,7 @@ def create_rejection(rejection: RejectionEpisode):
     }
 
 # Get all rejection episodes for a follow-up
-@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(nephrologist_or_admin)])
 def get_rejections(followup_id: str):
     obj_id = ObjectId(followup_id)
 
@@ -58,7 +58,7 @@ def get_rejections(followup_id: str):
     return episodes
 
 #update a rejection episode
-@router.patch("/{rejection_id}", dependencies=[Depends(doctor_or_admin)])
+@router.patch("/{rejection_id}", dependencies=[Depends(nephrologist_or_admin)])
 def update_rejection(rejection_id: str, updates: dict = Body(...)):
     obj_id = ObjectId(rejection_id)
 
@@ -75,7 +75,7 @@ def update_rejection(rejection_id: str, updates: dict = Body(...)):
     return {"message": "Rejection updated"}
 
 #delete a rejection episode
-@router.delete("/{rejection_id}", dependencies=[Depends(doctor_or_admin)])
+@router.delete("/{rejection_id}", dependencies=[Depends(nephrologist_or_admin)])
 def delete_rejection(rejection_id: str):
     result = rejection_collection.delete_one({"_id": ObjectId(rejection_id)})
 

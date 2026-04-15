@@ -14,5 +14,5 @@ class ImmunosuppressionRegimen(BaseModel):
     ciclosporine: bool
     sirolimus: bool
 
-    # Reference to Transplantation
-    transplantation_id: str
+    # Reference to follow up 
+    followup_id: str

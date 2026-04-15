@@ -16,9 +16,27 @@ from app.routers.barem_routes import router as barem_router
 from app.routers.score_routes import router as score_router
 from app.routers.attribute_routes import router as attribute_router
 from app.routers.immunosuppression_routes import router as immunosuppression_router
-from app.auth.auth_routes import router as auth_router
+from app.routers.auth_routes import router as auth_router
+from app.routers.admin_routes import router as admin_router
+from app.routers.crossmatch_routes import router as crossmatch_router
+
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include all routers
 app.include_router(patient_router)
 app.include_router(transplantation_router)
 app.include_router(followup_router)
@@ -35,9 +53,9 @@ app.include_router(adherence_router)
 app.include_router(barem_router)
 app.include_router(score_router)
 app.include_router(attribute_router)
-app.include_router(auth_router)
-
-
+app.include_router(auth_router)  # Auth routes (register/login)
+app.include_router(admin_router)  # Admin routes (user management)
+app.include_router(crossmatch_router)  # Crossmatch test routes
 
 @app.get("/")
 def root():

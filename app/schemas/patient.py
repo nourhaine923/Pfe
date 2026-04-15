@@ -8,6 +8,7 @@ from app.schemas.administrative_data import AdministrativeData
 
 
 class Patient(BaseModel):
+    medicalRecordNumber: int
     lastName: str
     firstName: str
     sex: str
@@ -30,5 +31,5 @@ class Patient(BaseModel):
     clinicalData: Optional[ClinicalData] = None
     hlaTyping: Optional[HLATyping] = None
 
-    # List of embedded administrative records
-    administrativeData: Optional[List[AdministrativeData]] = []
+    # administrative record
+    administrativeData: dict | None = None

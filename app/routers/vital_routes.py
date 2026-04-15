@@ -5,7 +5,7 @@ from typing import List
 
 from app.database import db
 from app.schemas.vital_signs import VitalSigns
-from app.auth.dependencies import doctor_or_admin
+from app.auth.dependencies import nephrologist_or_admin
 from fastapi import Depends
 
 router = APIRouter(prefix="/vitals", tags=["Vital Signs"])
@@ -21,7 +21,7 @@ def convert_dates(obj):
         return datetime(obj.year, obj.month, obj.day)
     return obj
 # Create a new vital signs record
-@router.post("/", dependencies=[Depends(doctor_or_admin)])
+@router.post("/", dependencies=[Depends(nephrologist_or_admin)])
 def create_vital_signs(vital: VitalSigns):
     data = convert_dates(vital.dict())
 
@@ -43,7 +43,7 @@ def create_vital_signs(vital: VitalSigns):
     }
 
 # Get all vital signs records for a follow-up
-@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(nephrologist_or_admin)])
 def get_vitals(followup_id: str):
     obj_id = ObjectId(followup_id)
 
@@ -56,7 +56,7 @@ def get_vitals(followup_id: str):
     return vitals
 
 # Update a vital signs record
-@router.patch("/{vital_id}", dependencies=[Depends(doctor_or_admin)])
+@router.patch("/{vital_id}", dependencies=[Depends(nephrologist_or_admin)])
 def update_vitals(vital_id: str, updates: dict = Body(...)):
     obj_id = ObjectId(vital_id)
 
@@ -73,7 +73,7 @@ def update_vitals(vital_id: str, updates: dict = Body(...)):
     return {"message": "Vital signs updated"}
 
 #delete a vital signs record
-@router.delete("/{vital_id}", dependencies=[Depends(doctor_or_admin)])
+@router.delete("/{vital_id}", dependencies=[Depends(nephrologist_or_admin)])
 def delete_vitals(vital_id: str):
     result = vital_collection.delete_one({"_id": ObjectId(vital_id)})
 

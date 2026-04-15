@@ -3,7 +3,7 @@ from bson import ObjectId
 from datetime import datetime, date
 from typing import List
 from fastapi import Body
-from app.auth.dependencies import doctor_or_admin
+from app.auth.dependencies import nephrologist_or_admin
 from fastapi import Depends
 
 from app.database import db
@@ -24,7 +24,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new therapeutic treatment
-@router.post("/", dependencies=[Depends(doctor_or_admin)])
+@router.post("/", dependencies=[Depends(nephrologist_or_admin)])
 def create_treatment(treatment: TherapeuticTreatment):
     data = convert_dates(treatment.dict())
 
@@ -43,7 +43,7 @@ def create_treatment(treatment: TherapeuticTreatment):
     return {"id": str(result.inserted_id)}
 
 # Get treatments by follow-up ID
-@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
+@router.get("/by-followup/{followup_id}", response_model=List[dict], dependencies=[Depends(nephrologist_or_admin)])
 def get_treatments(followup_id: str):
     obj_id = ObjectId(followup_id)
 
@@ -56,7 +56,7 @@ def get_treatments(followup_id: str):
     return treatments
 
 #update treatment by ID
-@router.patch("/{treatment_id}", dependencies=[Depends(doctor_or_admin)])
+@router.patch("/{treatment_id}", dependencies=[Depends(nephrologist_or_admin)])
 def partial_update_treatment(treatment_id: str, updates: dict = Body(...)):
     obj_id = ObjectId(treatment_id)
 
@@ -74,7 +74,7 @@ def partial_update_treatment(treatment_id: str, updates: dict = Body(...)):
 
 
 #Delete treatment by ID
-@router.delete("/{treatment_id}", dependencies=[Depends(doctor_or_admin)])
+@router.delete("/{treatment_id}", dependencies=[Depends(nephrologist_or_admin)])
 def delete_treatment(treatment_id: str):
     result = treatment_collection.delete_one({"_id": ObjectId(treatment_id)})
 

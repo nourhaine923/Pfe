@@ -16,5 +16,3 @@ class FollowUp(BaseModel):
     # Reference to Transplantation
     transplantation_id: str
 
-    # Reference to ImmunosuppressionRegimen
-    immunosuppression_regimen_id: str

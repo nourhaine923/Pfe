@@ -7,7 +7,7 @@ from app.utils.attribute_registry import ATTRIBUTE_REGISTRY
 from app.utils.rule_engine import compute_attribute_score
 from app.utils.context_score2 import build_score2_context
 from app.utils.context_score3 import build_score3_context
-from app.auth.dependencies import doctor_or_admin
+from app.auth.dependencies import nephrologist_or_admin
 from fastapi import Depends
 
 
@@ -17,12 +17,13 @@ barem_collection = db["barems"]
 transplant_collection = db["transplantations"]
 patient_collection = db["patients"]
 score_collection = db["scores"]
+followup_collection = db["followups"]  # <-- ADDED THIS LINE
 
 
 # --------------------------------------------------
 # Calculate and STORE SCORE_1
 # --------------------------------------------------
-@router.post("/calculate-score-1/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
+@router.post("/calculate-score-1/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
 def calculate_score_1(transplantation_id: str):
 
     # 1️⃣ Load transplantation
@@ -61,7 +62,6 @@ def calculate_score_1(transplantation_id: str):
 
     # 5️⃣ Evaluate dynamically
     for barem in barems:
-
         key = barem["key"]
         resolver = ATTRIBUTE_REGISTRY.get(key)
 
@@ -103,27 +103,68 @@ def calculate_score_1(transplantation_id: str):
         "used_attributes": used_attributes
     }
 
-# Get Score History for a Transplantation
-@router.get("/history/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
+
+# score history for a transplantation
+@router.get("/history/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
 def get_score_history(transplantation_id: str):
+    """Get all scores for a transplantation"""
+    try:
+        tx_id = ObjectId(transplantation_id)
+    except Exception as e:
+        print(f"Invalid ObjectId: {transplantation_id}, Error: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid transplantation_id format: {transplantation_id}")
+    
+    scores = []
+    
+    # Get SCORE_1 and SCORE_3 scores directly linked to transplantation
+    try:
+        score_scores = list(score_collection.find({
+            "transplantation_id": tx_id
+        }).sort("calculated_at", -1))
+        scores.extend(score_scores)
+        print(f"Found {len(score_scores)} scores for transplantation {transplantation_id}")
+    except Exception as e:
+        print(f"Error fetching transplantation scores: {e}")
+    
+    # Also get SCORE_2 scores for this transplantation (from follow-ups)
+    try:
+        followups = list(followup_collection.find({"transplantation_id": tx_id}))
+        followup_ids = [f["_id"] for f in followups]
+        
+        if followup_ids:
+            score2_scores = list(score_collection.find({
+                "followup_id": {"$in": followup_ids}
+            }).sort("calculated_at", -1))
+            scores.extend(score2_scores)
+            print(f"Found {len(score2_scores)} SCORE_2 scores from follow-ups")
+    except Exception as e:
+        print(f"Error fetching SCORE_2 scores: {e}")
 
-    scores = list(score_collection.find({
-        "transplantation_id": ObjectId(transplantation_id)
-    }).sort("calculated_at", -1))  # newest first
-
-    if not scores:
-        return []
-
-    # Serialize ObjectId + datetime
+    # Serialize for JSON response
+    serialized_scores = []
     for score in scores:
-        score["_id"] = str(score["_id"])
-        score["transplantation_id"] = str(score["transplantation_id"])
-        score["calculated_at"] = score["calculated_at"].isoformat()
+        try:
+            serialized = {
+                "_id": str(score["_id"]),
+                "score_type": score.get("score_type"),
+                "value": score.get("value", 0),
+                "calculated_at": score.get("calculated_at").isoformat() if score.get("calculated_at") else None,
+                "details": score.get("details", [])
+            }
+            if score.get("transplantation_id"):
+                serialized["transplantation_id"] = str(score["transplantation_id"])
+            if score.get("followup_id"):
+                serialized["followup_id"] = str(score["followup_id"])
+            serialized_scores.append(serialized)
+        except Exception as e:
+            print(f"Error serializing score: {e}")
+            continue
 
-    return scores
+    return serialized_scores
+
 
 # Get Latest Score for a Transplantation
-@router.get("/latest/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
+@router.get("/latest/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
 def get_latest_score(transplantation_id: str):
 
     latest = score_collection.find_one(
@@ -142,11 +183,10 @@ def get_latest_score(transplantation_id: str):
     return latest
 
 
-
 # --------------------------------------------------
 # CALCULATE SCORE 2 (Per FollowUp)
 # --------------------------------------------------
-@router.post("/calculate-score-2/{followup_id}", dependencies=[Depends(doctor_or_admin)])
+@router.post("/calculate-score-2/{followup_id}", dependencies=[Depends(nephrologist_or_admin)])
 def calculate_score_2(followup_id: str):
 
     try:
@@ -163,7 +203,6 @@ def calculate_score_2(followup_id: str):
     details = []
 
     for barem in barems:
-
         key = barem["key"]
 
         # Skip if attribute not in registry
@@ -206,10 +245,12 @@ def calculate_score_2(followup_id: str):
     snapshot["calculated_at"] = snapshot["calculated_at"].isoformat()
 
     return snapshot
-#-----------------------------------------------
-#score 3
-#-----------------------------------------------
-@router.post("/calculate-score-3/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
+
+
+# -----------------------------------------------
+# SCORE 3
+# -----------------------------------------------
+@router.post("/calculate-score-3/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
 def calculate_score_3(transplantation_id: str):
 
     context = build_score3_context(transplantation_id)

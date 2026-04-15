@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 from datetime import date
-
+from typing import Optional
 
 class TransfusionEvent(BaseModel):
-    date: date
+    transfusionDate: date
     units: int
     aboType: str
     indication: str
-
+    
     # Reference to Patient
     patient_id: str

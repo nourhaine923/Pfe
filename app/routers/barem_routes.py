@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from app.database import db
 from app.schemas.barem import Barem
-from app.auth.dependencies import doctor_or_admin
+from app.auth.dependencies import nephrologist_or_admin
 from fastapi import Depends
 
 
@@ -20,7 +20,7 @@ def serialize_barem(doc):
 
 
 # CREATE a new Barem rule
-@router.post("/", response_model=dict, dependencies=[Depends(doctor_or_admin)])
+@router.post("/", response_model=dict, dependencies=[Depends(nephrologist_or_admin)])
 def create_barem(barem: Barem):
 
     # Prevent duplicate key for same score
@@ -44,7 +44,7 @@ def create_barem(barem: Barem):
 
 
 # GET all Barems (optionally filter by score)
-@router.get("/", response_model=List[dict], dependencies=[Depends(doctor_or_admin)])
+@router.get("/", response_model=List[dict], dependencies=[Depends(nephrologist_or_admin)])
 def get_barems(score: Optional[str] = Query(None)):
     """
     Retrieve all barems, or filter by score name.
@@ -58,7 +58,7 @@ def get_barems(score: Optional[str] = Query(None)):
 
 
 # GET a single Barem by ID
-@router.get("/{barem_id}", response_model=dict, dependencies=[Depends(doctor_or_admin)])
+@router.get("/{barem_id}", response_model=dict, dependencies=[Depends(nephrologist_or_admin)])
 def get_barem(barem_id: str):
     doc = barem_collection.find_one({"_id": ObjectId(barem_id)})
 
@@ -69,7 +69,7 @@ def get_barem(barem_id: str):
 
 
 # UPDATE a Barem (doctor edits rules)
-@router.put("/{barem_id}", response_model=dict, dependencies=[Depends(doctor_or_admin)])
+@router.put("/{barem_id}", response_model=dict, dependencies=[Depends(nephrologist_or_admin)])
 def update_barem(barem_id: str, barem: Barem):
     """
     Replace an existing rule definition.
@@ -88,7 +88,7 @@ def update_barem(barem_id: str, barem: Barem):
 
 
 # DELETE a Barem
-@router.delete("/{barem_id}", response_model=dict, dependencies=[Depends(doctor_or_admin)])
+@router.delete("/{barem_id}", response_model=dict, dependencies=[Depends(nephrologist_or_admin)])
 def delete_barem(barem_id: str):
 
     result = barem_collection.delete_one({"_id": ObjectId(barem_id)})

@@ -1,8 +1,14 @@
 from pydantic import BaseModel
 from datetime import date
+from typing import Optional
+from enum import Enum
 
 from app.schemas.pretransplant_assessment import PreTransplantAssessment
 
+class TransplantStatus(str, Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 class Transplantation(BaseModel):
     transplantNumber: str
@@ -19,3 +25,6 @@ class Transplantation(BaseModel):
 
     # Embedded document
     preTransplantAssessment: PreTransplantAssessment
+    
+    # Status field with default value
+    status: TransplantStatus = TransplantStatus.PENDING

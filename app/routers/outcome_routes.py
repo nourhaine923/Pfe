@@ -1,13 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Body
 from bson import ObjectId
 from datetime import datetime, date
-from typing import List
-from fastapi import Body
+from typing import List, Optional
 
 from app.database import db
 from app.schemas.outcome import Outcome
-from app.auth.dependencies import doctor_or_admin
-from fastapi import Depends
+from app.auth.dependencies import nephrologist_or_admin
 
 router = APIRouter(prefix="/outcomes", tags=["Outcomes"])
 
@@ -24,7 +22,7 @@ def convert_dates(obj):
     return obj
 
 # Create a new outcome
-@router.post("/", dependencies=[Depends(doctor_or_admin)])
+@router.post("/", dependencies=[Depends(nephrologist_or_admin)])
 def create_outcome(outcome: Outcome):
     data = convert_dates(outcome.dict())
 
@@ -33,11 +31,28 @@ def create_outcome(outcome: Outcome):
     except:
         raise HTTPException(status_code=400, detail="Invalid transplantation_id")
 
-    # Ensure transplantation exists
-    if not transplantation_collection.find_one({"_id": transplantation_id}):
+    # Get transplantation to check status
+    transplantation = transplantation_collection.find_one({"_id": transplantation_id})
+    
+    if not transplantation:
         raise HTTPException(status_code=404, detail="Transplantation not found")
+    
+    # BUSINESS RULE: Only approved transplantations can have outcomes
+    if transplantation.get("status") != "APPROVED":
+        raise HTTPException(
+            status_code=400,
+            detail="Outcomes can only be recorded for APPROVED transplantations"
+        )
 
     data["transplantation_id"] = transplantation_id
+
+    # Check if outcome already exists for this transplantation
+    existing = outcome_collection.find_one({"transplantation_id": transplantation_id})
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Outcome already exists for this transplantation. Use update instead."
+        )
 
     result = outcome_collection.insert_one(data)
 
@@ -46,8 +61,8 @@ def create_outcome(outcome: Outcome):
         "id": str(result.inserted_id)
     }
 
-# Get outcomes by transplantation ID
-@router.get("/by-transplantation/{transplantation_id}", dependencies=[Depends(doctor_or_admin)])
+# Get outcome by transplantation ID
+@router.get("/by-transplantation/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
 def get_outcome(transplantation_id: str):
     try:
         obj_id = ObjectId(transplantation_id)
@@ -57,47 +72,69 @@ def get_outcome(transplantation_id: str):
     outcome = outcome_collection.find_one({"transplantation_id": obj_id})
 
     if not outcome:
-        raise HTTPException(status_code=404, detail="Outcome not found")
+        return None
 
     outcome["_id"] = str(outcome["_id"])
     outcome["transplantation_id"] = str(outcome["transplantation_id"])
 
     return outcome
 
-# Update an outcome by ID
-@router.patch("/{outcome_id}", dependencies=[Depends(doctor_or_admin)])
-def partial_update_outcome(outcome_id: str, updates: dict = Body(...)):
+# Update outcome
+@router.patch("/{outcome_id}", dependencies=[Depends(nephrologist_or_admin)])
+def update_outcome(outcome_id: str, updates: dict = Body(...)):
     try:
         obj_id = ObjectId(outcome_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid ID")
 
+    # Get the outcome to check the associated transplantation
+    outcome = outcome_collection.find_one({"_id": obj_id})
+    if not outcome:
+        raise HTTPException(status_code=404, detail="Outcome not found")
+    
+    # Get transplantation to check status
+    transplantation = transplantation_collection.find_one({"_id": outcome["transplantation_id"]})
+    
+    if transplantation and transplantation.get("status") != "APPROVED":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot update outcome for non-APPROVED transplantations"
+        )
+
+    # Remove protected fields
+    updates.pop("_id", None)
+    updates.pop("transplantation_id", None)
+    
     updates = convert_dates(updates)
 
-    # If transplantation_id is being changed, convert it
-    if "transplantation_id" in updates:
-        try:
-            updates["transplantation_id"] = ObjectId(updates["transplantation_id"])
-        except:
-            raise HTTPException(status_code=400, detail="Invalid transplantation_id")
-
-    result = outcome_collection.update_one(
-        {"_id": obj_id},
-        {"$set": updates}
-    )
+    result = outcome_collection.update_one({"_id": obj_id}, {"$set": updates})
 
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Outcome not found")
 
-    return {"message": "Outcome updated partially"}
+    return {"message": "Outcome updated successfully"}
 
-# Delete an outcome by ID
-@router.delete("/{outcome_id}", dependencies=[Depends(doctor_or_admin)])
+# Delete outcome
+@router.delete("/{outcome_id}", dependencies=[Depends(nephrologist_or_admin)])
 def delete_outcome(outcome_id: str):
     try:
         obj_id = ObjectId(outcome_id)
     except:
         raise HTTPException(status_code=400, detail="Invalid ID")
+    
+    # Get the outcome to check the associated transplantation
+    outcome = outcome_collection.find_one({"_id": obj_id})
+    if not outcome:
+        raise HTTPException(status_code=404, detail="Outcome not found")
+    
+    # Get transplantation to check status
+    transplantation = transplantation_collection.find_one({"_id": outcome["transplantation_id"]})
+    
+    if transplantation and transplantation.get("status") != "APPROVED":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete outcome for non-APPROVED transplantations"
+        )
 
     result = outcome_collection.delete_one({"_id": obj_id})
 
@@ -105,4 +142,3 @@ def delete_outcome(outcome_id: str):
         raise HTTPException(status_code=404, detail="Outcome not found")
 
     return {"message": "Outcome deleted"}
-
