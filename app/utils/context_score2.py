@@ -8,7 +8,7 @@ def build_score2_context(followup_id: str):
     Build context dictionary for SCORE 2 calculation
     Includes follow-up, transplantation, recipient, biological data,
     adverse events, immunosuppression regimen, outcome, immunological markers,
-    and vital signs
+    rejection episodes, and vital signs
     """
     followups = db["followups"]
     transplantations = db["transplantations"]
@@ -19,6 +19,7 @@ def build_score2_context(followup_id: str):
     outcomes = db["outcomes"]
     immunological = db["immunological_markers"]
     vitals = db["vitals"]
+    rejections = db["rejections"]  
 
     # Get follow-up
     followup = followups.find_one({"_id": ObjectId(followup_id)})
@@ -58,6 +59,9 @@ def build_score2_context(followup_id: str):
     # Get vital signs
     vital_signs = vitals.find_one({"followup_id": ObjectId(followup_id)})
 
+    # Get rejection episodes for this follow-up
+    rejection_episodes = list(rejections.find({"followup_id": ObjectId(followup_id)}))
+
     # Get outcome
     outcome = outcomes.find_one({"transplantation_id": ObjectId(tx["_id"])})
 
@@ -70,5 +74,6 @@ def build_score2_context(followup_id: str):
         "regimen": regimen,
         "outcome": outcome,
         "immunological": immunological_list,
-        "vital_signs": vital_signs
+        "vital_signs": vital_signs,
+        "rejection_episodes": rejection_episodes  
     }

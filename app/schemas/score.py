@@ -3,9 +3,10 @@ from datetime import datetime
 
 
 class Score(BaseModel):
-    scoreType: str      # SCORE_1 | SCORE_2 | SCORE_3
+    scoreType: str      # Pre-transplant | Post-transplant | Emergency
     value: int          # computed score
     calculatedAt: datetime
 
+    # Reference to Transplantation
     transplantation_id: str | None = None
  

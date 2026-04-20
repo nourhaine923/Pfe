@@ -28,7 +28,6 @@ class Patient(BaseModel):
     birthDate: Optional[date] = None
 
     # Embedded documents
-    clinicalData: Optional[ClinicalData] = None
     hlaTyping: Optional[HLATyping] = None
 
     # administrative record

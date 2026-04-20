@@ -17,7 +17,21 @@ barem_collection = db["barems"]
 transplant_collection = db["transplantations"]
 patient_collection = db["patients"]
 score_collection = db["scores"]
-followup_collection = db["followups"]  # <-- ADDED THIS LINE
+followup_collection = db["followups"]  
+
+
+def normalize_score(raw_score, min_possible=-40, max_possible=60):
+    """
+    Normalize score to 0-100 range
+    raw_score: calculated points (can be negative)
+    min_possible: minimum possible raw score
+    max_possible: maximum possible raw score
+    """
+    # Clamp to possible range
+    clamped = max(min_possible, min(max_possible, raw_score))
+    # Convert to 0-100 scale
+    normalized = ((clamped - min_possible) / (max_possible - min_possible)) * 100
+    return int(round(normalized))
 
 
 # --------------------------------------------------
@@ -70,7 +84,8 @@ def calculate_score_1(transplantation_id: str):
 
         try:
             raw_value = resolver(context)
-        except Exception:
+        except Exception as e:
+            print(f"Error resolving {key}: {e}")
             continue
 
         if raw_value is None:
@@ -86,11 +101,14 @@ def calculate_score_1(transplantation_id: str):
             "impact": impact
         })
 
+    # Normalize to 0-100 scale
+    normalized_score = normalize_score(total_score, min_possible=-40, max_possible=60)
+
     # 6️⃣ Store snapshot in Mongo
     score_doc = {
         "transplantation_id": ObjectId(transplantation_id),
         "score_type": "SCORE_1",
-        "value": total_score,
+        "value": normalized_score,
         "calculated_at": datetime.utcnow(),
         "details": used_attributes
     }
@@ -99,7 +117,7 @@ def calculate_score_1(transplantation_id: str):
 
     # 7️⃣ Return result
     return {
-        "score": total_score,
+        "score": normalized_score,
         "used_attributes": used_attributes
     }
 
@@ -227,9 +245,12 @@ def calculate_score_2(followup_id: str):
                 "impact": impact
             })
 
+    # Normalize to 0-100 scale
+    normalized_score = normalize_score(total_score, min_possible=-40, max_possible=60)
+
     snapshot = {
         "score_type": "SCORE_2",
-        "value": total_score,
+        "value": normalized_score,
         "details": details,
         "followup_id": ObjectId(followup_id),
         "transplantation_id": ObjectId(context["tx"]["_id"]),
@@ -247,40 +268,63 @@ def calculate_score_2(followup_id: str):
     return snapshot
 
 
-# -----------------------------------------------
-# SCORE 3
-# -----------------------------------------------
+# --------------------------------------------------
+# CALCULATE SCORE 3 (Success Probability)
+# HIGHER score = BETTER outcome (starts at 100, subtracts for problems)
+# --------------------------------------------------
 @router.post("/calculate-score-3/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
 def calculate_score_3(transplantation_id: str):
-
-    context = build_score3_context(transplantation_id)
+    try:
+        context = build_score3_context(transplantation_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
     barems = list(barem_collection.find({"score": "SCORE_3"}))
 
-    total_score = 0
+    if not barems:
+        raise HTTPException(status_code=404, detail="No SCORE_3 barems defined")
+
+    # Start with MAX score (100) and SUBTRACT for problems
+    total_score = 100
     details = []
 
     for barem in barems:
         key = barem["key"]
 
         if key not in ATTRIBUTE_REGISTRY:
+            print(f"Attribute {key} not found in registry")
             continue
 
-        value = ATTRIBUTE_REGISTRY[key](context)
+        try:
+            value = ATTRIBUTE_REGISTRY[key](context)
+            print(f"SCORE_3 - {key}: {value}")
+        except Exception as e:
+            print(f"Error getting {key}: {e}")
+            continue
 
+        if value is None:
+            print(f"SCORE_3 - {key} returned None")
+            continue
+
+        # Calculate emergency impact (positive = bad)
         impact = compute_attribute_score(value, barem)
+        print(f"SCORE_3 - {key} raw impact: {impact}")
 
         if impact is not None:
-            total_score += impact
+            # SUBTRACT the impact from the score
+            total_score -= impact
             details.append({
                 "attribute": key,
                 "value": value,
-                "impact": impact
+                "impact": -impact  # Store as negative for display
             })
+
+    # Ensure score stays within 0-100 range
+    normalized_score = max(0, min(100, total_score))
 
     snapshot = {
         "score_type": "SCORE_3",
-        "value": total_score,
+        "value": normalized_score,
         "details": details,
         "transplantation_id": ObjectId(transplantation_id),
         "calculated_at": datetime.utcnow()
@@ -288,9 +332,56 @@ def calculate_score_3(transplantation_id: str):
 
     result = score_collection.insert_one(snapshot)
 
-    # SERIALIZE BEFORE RETURNING
     snapshot["_id"] = str(result.inserted_id)
     snapshot["transplantation_id"] = str(snapshot["transplantation_id"])
     snapshot["calculated_at"] = snapshot["calculated_at"].isoformat()
 
     return snapshot
+
+
+@router.get("/score3-debug/{transplantation_id}", dependencies=[Depends(nephrologist_or_admin)])
+def score3_debug(transplantation_id: str):
+    """Debug endpoint to check SCORE 3 data availability"""
+    try:
+        context = build_score3_context(transplantation_id)
+    except ValueError as e:
+        return {"error": str(e)}
+    
+    # Check each attribute
+    attributes_to_check = [
+        "followup_count",
+        "adverse_event_rate", 
+        "mean_creatinine",
+        "max_creatinine",
+        "min_gfr",
+        "creatinine_trend",
+        "graft_loss",
+        "patient_survival",
+        "urine_output",
+        "temperature",
+        "blood_pressure",
+        "heart_rate",
+        "oxygen_saturation",
+        "mental_status",
+        "graft_ultrasound"
+    ]
+    
+    results = {}
+    for attr in attributes_to_check:
+        if attr in ATTRIBUTE_REGISTRY:
+            try:
+                value = ATTRIBUTE_REGISTRY[attr](context)
+                results[attr] = value
+            except Exception as e:
+                results[attr] = f"Error: {str(e)}"
+        else:
+            results[attr] = "Not in registry"
+    
+    return {
+        "followups_count": len(context.get("followups", [])),
+        "biological_count": len(context.get("biological", [])),
+        "vitals_count": len(context.get("vitals", [])),
+        "adverse_events_count": len(context.get("adverse_events", [])),
+        "has_outcome": context.get("outcome") is not None,
+        "attribute_values": results
+    }

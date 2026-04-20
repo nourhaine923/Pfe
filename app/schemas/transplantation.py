@@ -15,11 +15,10 @@ class Transplantation(BaseModel):
     transplantDate: date
     transplantLocation: str
     serviceOrigin: str
-
     coldIschemiaHours: float
     warmIschemiaMinutes: float
 
-    # References (will be converted to ObjectId in routes)
+    # References 
     recipient_id: str
     donor_id: str
 
